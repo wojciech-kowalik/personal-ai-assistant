@@ -1,5 +1,8 @@
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 import TelegramService from "@/services/telegram.service";
 import GroqService, { ChatMessage } from "@/services/groq.service";
+//import { webhookCallback } from "grammy";
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const chatId = process.env.TELEGRAM_CHAT_ID;
@@ -26,6 +29,7 @@ telegramService.onCommand("start", () => {
 });
 
 telegramService.onMessage(async (ctx) => {
+  // curl -X POST --data-binary '{"text": ""}' localhost:3000/api/bot
   try {
     const messages: ChatMessage[] = [
       {
@@ -60,10 +64,7 @@ telegramService.onMessage(async (ctx) => {
   }
 });
 
-export async function GET(): Promise<Response> {
-  return new Response("OK");
-}
-
+//export const POST = webhookCallback(telegramService.getInstance(), "std/http");
 export async function POST(): Promise<Response> {
   return new Response("OK");
 }
