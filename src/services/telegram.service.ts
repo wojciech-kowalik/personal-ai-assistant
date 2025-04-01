@@ -63,13 +63,12 @@ class TelegramService {
     text: string,
     options: {
       parse_mode?: ParseMode;
-      reply_markup?: any;
       disable_notification?: boolean;
       protect_content?: boolean;
     } = {
       parse_mode: "Markdown",
     },
-  ): Promise<any> {
+  ): Promise<ReturnType<typeof this.bot.api.sendMessage>> {
     return this.bot.api.sendMessage(chatId, text, options);
   }
 
