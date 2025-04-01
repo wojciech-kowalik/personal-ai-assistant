@@ -146,17 +146,6 @@ class GroqService {
       throw error;
     }
   }
-
-  /**
-   * Helper to extract text from a completion response
-   * @param completion The completion response from createChatCompletion or simpleCompletion
-   * @returns The text content from the response
-   */
-  public getCompletionText(
-    completion: { choices: { message: { content: any } }[] } | null,
-  ): string {
-    return completion?.choices?.[0]?.message?.content || "";
-  }
 }
 
 export default GroqService;
