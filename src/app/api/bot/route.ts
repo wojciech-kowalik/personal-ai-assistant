@@ -27,16 +27,60 @@ telegramService.startPolling();
 
 const chatHistoryService = new ChatHistoryService();
 
+/**
+ * Command to start the bot and reset chat history
+ */
 telegramService.onCommand("start", (ctx) => {
 	const userId = ctx.message?.from?.id.toString() || chatId!;
 	chatHistoryService.resetHistory(userId);
 	telegramService.sendMessage(userId, "*Hi!* _Welcome_ to AI Assistant! 🤖");
 });
 
+/**
+ * Command to reset the chat history
+ */
 telegramService.onCommand("reset", (ctx) => {
 	const userId = ctx.message?.from?.id.toString() || chatId!;
 	chatHistoryService.resetHistory(userId);
 	telegramService.sendMessage(userId, "Memory reset! Let's start fresh.");
+});
+
+/**
+ * Command to get the current chat history
+ */
+telegramService.onCommand("debug", (ctx) => {
+	const userId = ctx.message?.from?.id.toString() || chatId!;
+	const history = chatHistoryService.getHistory(userId);
+	const historyLength = history.length;
+
+	telegramService.sendMessage(
+		userId,
+		`Debug info:\nHistory entries: ${historyLength / 2} exchanges\nTotal messages: ${historyLength}`,
+	);
+
+	// only send abbreviated history to avoid flooding the chat
+	if (historyLength > 0) {
+		const lastExchanges = history.slice(-4); // Show last 2 exchanges at most
+		const historyPreview = lastExchanges
+			.map(
+				(msg, i) =>
+					`${i % 2 === 0 ? "👤" : "🤖"}: ${msg.content.substring(0, 30)}${msg.content.length > 30 ? "..." : ""}`,
+			)
+			.join("\n");
+
+		telegramService.sendMessage(userId, `Recent messages:\n${historyPreview}`);
+	}
+});
+
+/**
+ * Test command to check context retention
+ */
+telegramService.onCommand("test", (ctx) => {
+	const userId = ctx.message?.from?.id.toString() || chatId!;
+	telegramService.sendMessage(
+		userId,
+		"Let's run a quick test of context retention. Please ask a question about a specific topic, then follow up with 'Tell me more' to see if I remember what we were discussing.",
+	);
 });
 
 telegramService.onMessage(async (ctx) => {
@@ -49,7 +93,7 @@ telegramService.onMessage(async (ctx) => {
 			{
 				role: "system",
 				content:
-					'You are a helpful AI assistant. If a user asks you to infer or provide information about a user emotions, mental health, gender identity, sexual orientation, age, religion, disability, racial and ethnic backgrounds, or any other aspect of a person\'s identity, respond with: "Try asking me a question or tell me what else I can help you with."',
+					"You are a helpful AI assistant. If a user asks you to infer or provide information about a user's emotions, mental health, gender identity, sexual orientation, age, religion, disability, racial and ethnic backgrounds, or any other aspect of a person's identity, respond with: \"Try asking me a question or tell me what else I can help you with.\"",
 			},
 			...userHistory,
 			{
@@ -58,6 +102,10 @@ telegramService.onMessage(async (ctx) => {
 			},
 		];
 
+		console.log(
+			`Processing message with ${userHistory.length / 2} previous exchanges in context`,
+		);
+
 		const chatResponse = await groqService.createChatCompletion(messages, {
 			temperature: 0.7,
 			maxTokens: 100,
@@ -65,10 +113,11 @@ telegramService.onMessage(async (ctx) => {
 
 		const chatResponseMessage = chatResponse.choices[0]?.message?.content || "";
 
-		chatHistoryService.addMessage(userId, userMessage);
-		chatHistoryService.addMessage(userId, chatResponseMessage);
+		// add the message pair to history
+		chatHistoryService.addMessage(userId, userMessage, "user");
+		chatHistoryService.addMessage(userId, chatResponseMessage, "assistant");
 
-		telegramService.sendMessage(chatId!, chatResponseMessage);
+		telegramService.sendMessage(userId, chatResponseMessage);
 
 		console.log("Tokens used:", chatResponse.usage?.total_tokens);
 		console.log("Response time:", chatResponse.usage?.total_time);

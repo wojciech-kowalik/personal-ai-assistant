@@ -16,19 +16,23 @@ class ChatHistoryService {
 		return this.chatHistory.get(userId) || [];
 	}
 
-	addMessage(userId: string, userMessage: string): void {
-		// prevent adding command messages to history
-		if (userMessage.startsWith("/")) {
+	addMessage(
+		userId: string,
+		content: string,
+		role: "user" | "assistant" = "user",
+	): void {
+		if (role === "user" && content.startsWith("/")) {
 			return;
 		}
 
 		const history = this.getHistory(userId);
-
-		history.push({ role: "user", content: userMessage });
+		history.push({ role, content });
 
 		// limit history to prevent token overflow
-		if (history.length > this.maxHistoryLength) {
-			this.chatHistory.set(userId, history.slice(-this.maxHistoryLength));
+		// keep pairs of messages (user + assistant)
+		const maxMessages = this.maxHistoryLength * 2;
+		if (history.length > maxMessages) {
+			this.chatHistory.set(userId, history.slice(-maxMessages));
 		} else {
 			this.chatHistory.set(userId, history);
 		}
