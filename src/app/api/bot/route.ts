@@ -81,7 +81,7 @@ telegramService.onCommand("debug", (ctx) => {
 /**
  * Test command to check context retention
  */
-telegramService.onCommand("test", (ctx) => {
+telegramService.onCommand("test", () => {
 	telegramService.sendMessage(
 		chatId,
 		"Let's run a quick test of context retention. Please ask a question about a specific topic, then follow up with 'Tell me more' to see if I remember what we were discussing.",
