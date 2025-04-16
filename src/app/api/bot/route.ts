@@ -1,7 +1,9 @@
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 import TelegramService from "@/services/telegram.service";
-import GroqService, { ChatMessage } from "@/services/groq.service";
+import GroqService, {
+	type ChatCompletionMessages,
+} from "@/services/groq.service";
 import ChatHistoryService from "@/services/chat-history.service";
 //import { webhookCallback } from "grammy";
 
@@ -20,7 +22,6 @@ if (!apiKey) {
 }
 
 const groqService = new GroqService(apiKey);
-groqService.setDefaultModel("gemma2-9b-it");
 
 const telegramService = new TelegramService(token);
 telegramService.startPolling();
@@ -58,14 +59,19 @@ telegramService.onCommand("debug", (ctx) => {
 		`Debug info:\nHistory entries: ${historyLength / 2} exchanges\nTotal messages: ${historyLength}`,
 	);
 
-	// only send abbreviated history to avoid flooding the chat
 	if (historyLength > 0) {
-		const lastExchanges = history.slice(-4); // Show last 2 exchanges at most
+		const lastExchanges = history.slice(-4);
 		const historyPreview = lastExchanges
-			.map(
-				(msg, i) =>
-					`${i % 2 === 0 ? "👤" : "🤖"}: ${msg.content.substring(0, 30)}${msg.content.length > 30 ? "..." : ""}`,
-			)
+			.map((msg, i) => {
+				const content =
+					typeof msg.content === "string"
+						? msg.content
+						: JSON.stringify(msg.content);
+
+				return `${i % 2 === 0 ? "👤" : "🤖"}: ${
+					content?.substring(0, 30) || "[No content]"
+				}${content && content.length > 30 ? "..." : ""}`;
+			})
 			.join("\n");
 
 		telegramService.sendMessage(userId, `Recent messages:\n${historyPreview}`);
@@ -75,21 +81,104 @@ telegramService.onCommand("debug", (ctx) => {
 /**
  * Test command to check context retention
  */
-telegramService.onCommand("test", (ctx) => {
-	const userId = ctx.message?.from?.id.toString() || chatId!;
+telegramService.onCommand("test", () => {
 	telegramService.sendMessage(
-		userId,
+		chatId,
 		"Let's run a quick test of context retention. Please ask a question about a specific topic, then follow up with 'Tell me more' to see if I remember what we were discussing.",
 	);
 });
 
-telegramService.onMessage(async (ctx) => {
+/**
+ * Command to handle image data
+ */
+telegramService.onImageData(async (ctx) => {
+	groqService.setDefaultModel("meta-llama/llama-4-maverick-17b-128e-instruct");
+
+	const photo = ctx.message?.photo;
+	const userMessage = ctx?.msg?.caption || "";
+
+	telegramService.sendMessage(chatId, "🤖 I am executing image processing...");
+
+	if (!photo || photo.length === 0) {
+		telegramService.sendMessage(chatId, "No image found in the message.");
+		return;
+	}
+
+	const fileId = photo[photo.length - 1]?.file_id;
+
+	if (!fileId) {
+		telegramService.sendMessage(chatId, "Could not process the image.");
+		return;
+	}
+
+	try {
+		const isValidImageType = await telegramService.isValidImageType(fileId, [
+			"jpg",
+			"jpeg",
+			"png",
+		]);
+
+		if (!isValidImageType) {
+			telegramService.sendMessage(
+				chatId,
+				"Please send only JPG or PNG images.",
+			);
+			return;
+		}
+
+		const fileUrl = await telegramService.getFileUrl(fileId);
+
+		if (!fileUrl) {
+			telegramService.sendMessage(chatId, "Could not retrieve the image URL.");
+			return;
+		}
+
+		const messages: ChatCompletionMessages[] = [
+			{
+				role: "user",
+				content: [
+					{
+						type: "text",
+						text: userMessage,
+					},
+					{
+						type: "image_url",
+						image_url: {
+							url: fileUrl,
+							detail: "auto",
+						},
+					},
+				],
+			},
+		];
+
+		const chatResponse = await groqService.createChatCompletion(messages, {
+			temperature: 0.7,
+		});
+
+		const chatResponseMessage = chatResponse.choices[0]?.message?.content || "";
+
+		telegramService.sendMessage(chatId, chatResponseMessage);
+	} catch (error) {
+		console.error("Error processing image:", error);
+		telegramService.sendMessage(
+			chatId,
+			"Error processing the image. Please try again.",
+		);
+	}
+});
+
+telegramService.onTextMessage(async (ctx) => {
+	groqService.setDefaultModel("gemma2-9b-it");
+
 	try {
 		const userId = ctx.message?.from?.id.toString() || chatId!;
 		const userMessage = ctx?.message?.text || "";
 		const userHistory = chatHistoryService.getHistory(userId);
 
-		const messages: ChatMessage[] = [
+		telegramService.sendMessage(userId, "🤖 I am executing text answering ...");
+
+		const messages: ChatCompletionMessages[] = [
 			{
 				role: "system",
 				content:
