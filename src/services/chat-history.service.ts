@@ -1,15 +1,15 @@
-import { ChatMessage } from "@/services/groq.service";
+import type { ChatCompletionMessages } from "@/services/groq.service";
 
 class ChatHistoryService {
-	private chatHistory: Map<string, ChatMessage[]>;
+	private chatHistory: Map<string, ChatCompletionMessages[]>;
 	private maxHistoryLength: number;
 
 	constructor(maxHistoryLength = 10) {
-		this.chatHistory = new Map<string, ChatMessage[]>();
+		this.chatHistory = new Map<string, ChatCompletionMessages[]>();
 		this.maxHistoryLength = maxHistoryLength;
 	}
 
-	getHistory(userId: string): ChatMessage[] {
+	getHistory(userId: string): ChatCompletionMessages[] {
 		if (!this.chatHistory.has(userId)) {
 			this.chatHistory.set(userId, []);
 		}
