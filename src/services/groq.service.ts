@@ -3,9 +3,12 @@ import { Groq } from "groq-sdk";
 export type ChatCompletionMessages =
 	Groq.Chat.Completions.ChatCompletionMessageParam;
 
-/**
- * Options for customizing chat completion requests
- */
+export interface TranscriptionCreateParams {
+	model?: string;
+	language?: string;
+	sampleRate?: number;
+}
+
 export interface ChatCompletionOptions {
 	model?: string;
 	maxTokens?: number;
@@ -32,9 +35,9 @@ class GroqService {
 
 	/**
 	 * Generate a non-streaming chat completion
-	 * @param messages Array of messages in the conversation
-	 * @param options Configuration options for the completion
-	 * @returns The completion response from the API
+	 * @param messages ChatCompletionMessages[]
+	 * @param options ChatCompletionOptions
+	 * @returns APIPromise<ChatCompletion>
 	 */
 	public async createChatCompletion(
 		messages: ChatCompletionMessages[],
@@ -62,6 +65,38 @@ class GroqService {
 			console.error("Error creating chat completion:", error);
 			throw error;
 		}
+	}
+	/**
+	 * Generate a non-streaming audio transcription
+	 * @param file  Uploadable
+	 * @param options  TranscriptionCreateParams
+	 * @returns APIPromise<Transcription>
+	 */
+	public async createAudioTranscription(
+		url: string,
+		options: TranscriptionCreateParams,
+	) {
+		const { model = this.defaultModel, language } = options;
+
+		try {
+			return await this.client.audio.transcriptions.create({
+				url,
+				model,
+				language,
+			});
+		} catch (error) {
+			console.error("Error creating audio transcription:", error);
+			throw error;
+		}
+	}
+
+	public async sendMessage(messages: ChatCompletionMessages[]) {
+		const chatResponse = await this.createChatCompletion(messages, {
+			temperature: 0.7,
+			maxTokens: 300,
+		});
+
+		return chatResponse.choices[0]?.message?.content || "";
 	}
 
 	/**

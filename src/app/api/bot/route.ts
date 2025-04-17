@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
+
 import TelegramService from "@/services/telegram.service";
 import GroqService, {
 	type ChatCompletionMessages,
@@ -7,6 +8,7 @@ import GroqService, {
 import ChatHistoryService from "@/services/chat-history.service";
 //import { webhookCallback } from "grammy";
 
+const systemContent = "You are a helpful AI assistant. ";
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const chatId = process.env.TELEGRAM_CHAT_ID;
 const apiKey = process.env.GROQ_API_KEY;
@@ -31,30 +33,36 @@ const chatHistoryService = new ChatHistoryService();
 /**
  * Command to start the bot and reset chat history
  */
-telegramService.onCommand("start", (ctx) => {
+telegramService.onCommand("start", async (ctx) => {
 	const userId = ctx.message?.from?.id.toString() || chatId!;
 	chatHistoryService.resetHistory(userId);
-	telegramService.sendMessage(userId, "*Hi!* _Welcome_ to AI Assistant! 🤖");
+	await telegramService.sendMessage(
+		userId,
+		"*Hi!* _Welcome_ to AI Assistant! 🤖",
+		{
+			parse_mode: "Markdown",
+		},
+	);
 });
 
 /**
  * Command to reset the chat history
  */
-telegramService.onCommand("reset", (ctx) => {
+telegramService.onCommand("reset", async (ctx) => {
 	const userId = ctx.message?.from?.id.toString() || chatId!;
 	chatHistoryService.resetHistory(userId);
-	telegramService.sendMessage(userId, "Memory reset! Let's start fresh.");
+	await telegramService.sendMessage(userId, "Memory reset! Let's start fresh.");
 });
 
 /**
  * Command to get the current chat history
  */
-telegramService.onCommand("debug", (ctx) => {
+telegramService.onCommand("debug", async (ctx) => {
 	const userId = ctx.message?.from?.id.toString() || chatId!;
 	const history = chatHistoryService.getHistory(userId);
 	const historyLength = history.length;
 
-	telegramService.sendMessage(
+	await telegramService.sendMessage(
 		userId,
 		`Debug info:\nHistory entries: ${historyLength / 2} exchanges\nTotal messages: ${historyLength}`,
 	);
@@ -74,44 +82,41 @@ telegramService.onCommand("debug", (ctx) => {
 			})
 			.join("\n");
 
-		telegramService.sendMessage(userId, `Recent messages:\n${historyPreview}`);
+		await telegramService.sendMessage(
+			userId,
+			`Recent messages:\n${historyPreview}`,
+		);
 	}
-});
-
-/**
- * Test command to check context retention
- */
-telegramService.onCommand("test", () => {
-	telegramService.sendMessage(
-		chatId,
-		"Let's run a quick test of context retention. Please ask a question about a specific topic, then follow up with 'Tell me more' to see if I remember what we were discussing.",
-	);
 });
 
 /**
  * Command to handle image data
  */
-telegramService.onImageData(async (ctx) => {
-	groqService.setDefaultModel("meta-llama/llama-4-maverick-17b-128e-instruct");
-
-	const photo = ctx.message?.photo;
-	const userMessage = ctx?.msg?.caption || "";
-
-	telegramService.sendMessage(chatId, "🤖 I am executing image processing...");
-
-	if (!photo || photo.length === 0) {
-		telegramService.sendMessage(chatId, "No image found in the message.");
-		return;
-	}
-
-	const fileId = photo[photo.length - 1]?.file_id;
-
-	if (!fileId) {
-		telegramService.sendMessage(chatId, "Could not process the image.");
-		return;
-	}
-
+telegramService.onImageMessage(async (ctx) => {
 	try {
+		const photo = ctx.message?.photo;
+		const userMessage = ctx?.msg?.caption || "";
+
+		await telegramService.sendMessage(
+			chatId,
+			"🤖 I am executing image processing...",
+		);
+
+		if (!photo || photo.length === 0) {
+			await telegramService.sendMessage(
+				chatId,
+				"No image found in the message.",
+			);
+			return;
+		}
+
+		const fileId = photo[photo.length - 1]?.file_id;
+
+		if (!fileId) {
+			await telegramService.sendMessage(chatId, "Could not process the image.");
+			return;
+		}
+
 		const isValidImageType = await telegramService.isValidImageType(fileId, [
 			"jpg",
 			"jpeg",
@@ -119,7 +124,7 @@ telegramService.onImageData(async (ctx) => {
 		]);
 
 		if (!isValidImageType) {
-			telegramService.sendMessage(
+			await telegramService.sendMessage(
 				chatId,
 				"Please send only JPG or PNG images.",
 			);
@@ -129,7 +134,10 @@ telegramService.onImageData(async (ctx) => {
 		const fileUrl = await telegramService.getFileUrl(fileId);
 
 		if (!fileUrl) {
-			telegramService.sendMessage(chatId, "Could not retrieve the image URL.");
+			await telegramService.sendMessage(
+				chatId,
+				"Could not retrieve the image URL.",
+			);
 			return;
 		}
 
@@ -152,13 +160,11 @@ telegramService.onImageData(async (ctx) => {
 			},
 		];
 
-		const chatResponse = await groqService.createChatCompletion(messages, {
-			temperature: 0.7,
-		});
-
-		const chatResponseMessage = chatResponse.choices[0]?.message?.content || "";
-
-		telegramService.sendMessage(chatId, chatResponseMessage);
+		groqService.setDefaultModel(
+			"meta-llama/llama-4-maverick-17b-128e-instruct",
+		);
+		const chatResponseMessage = await groqService.sendMessage(messages);
+		await telegramService.sendMessage(chatId, chatResponseMessage);
 	} catch (error) {
 		console.error("Error processing image:", error);
 		telegramService.sendMessage(
@@ -168,21 +174,89 @@ telegramService.onImageData(async (ctx) => {
 	}
 });
 
-telegramService.onTextMessage(async (ctx) => {
-	groqService.setDefaultModel("gemma2-9b-it");
+telegramService.onVoiceMessage(async (ctx) => {
+	try {
+		const voice = ctx.message?.voice;
 
+		await telegramService.sendMessage(
+			chatId,
+			"🤖 I am executing voice processing...",
+		);
+
+		if (!voice) {
+			await telegramService.sendMessage(chatId, "No voice message found.");
+			return;
+		}
+
+		const fileId = voice.file_id;
+
+		if (!fileId) {
+			await telegramService.sendMessage(
+				chatId,
+				"Could not process the voice message.",
+			);
+			return;
+		}
+
+		if (!telegramService.isVoiceFileSizeValid(voice.file_size)) {
+			await telegramService.sendMessage(
+				chatId,
+				"Voice message is too large. Please send a voice message smaller than 1MB.",
+			);
+			return;
+		}
+
+		const fileUrl = await telegramService.getFileUrl(fileId);
+
+		if (!fileUrl) {
+			await telegramService.sendMessage(
+				chatId,
+				"Could not retrieve the voice URL.",
+			);
+			return;
+		}
+
+		groqService.setDefaultModel("whisper-large-v3-turbo");
+		const transcription = await groqService.createAudioTranscription(fileUrl, {
+			language: "en",
+		});
+
+		await telegramService.sendMessage(chatId, transcription.text);
+
+		const messages: ChatCompletionMessages[] = [
+			{
+				role: "system",
+				content: systemContent,
+			},
+			{
+				role: "user",
+				content: transcription.text,
+			},
+		];
+
+		groqService.setDefaultModel("gemma2-9b-it");
+		const chatResponseMessage = await groqService.sendMessage(messages);
+		await telegramService.sendMessage(chatId, chatResponseMessage);
+	} catch (error) {
+		console.error("Error processing voice message:", error);
+	}
+});
+
+telegramService.onTextMessage(async (ctx) => {
 	try {
 		const userId = ctx.message?.from?.id.toString() || chatId!;
 		const userMessage = ctx?.message?.text || "";
 		const userHistory = chatHistoryService.getHistory(userId);
 
-		telegramService.sendMessage(userId, "🤖 I am executing text answering ...");
+		await telegramService.sendMessage(
+			userId,
+			"🤖 I am executing text answering ...",
+		);
 
 		const messages: ChatCompletionMessages[] = [
 			{
 				role: "system",
-				content:
-					"You are a helpful AI assistant. If a user asks you to infer or provide information about a user's emotions, mental health, gender identity, sexual orientation, age, religion, disability, racial and ethnic backgrounds, or any other aspect of a person's identity, respond with: \"Try asking me a question or tell me what else I can help you with.\"",
+				content: systemContent,
 			},
 			...userHistory,
 			{
@@ -191,25 +265,14 @@ telegramService.onTextMessage(async (ctx) => {
 			},
 		];
 
-		console.log(
-			`Processing message with ${userHistory.length / 2} previous exchanges in context`,
-		);
-
-		const chatResponse = await groqService.createChatCompletion(messages, {
-			temperature: 0.7,
-			maxTokens: 100,
-		});
-
-		const chatResponseMessage = chatResponse.choices[0]?.message?.content || "";
+		groqService.setDefaultModel("gemma2-9b-it");
+		const chatResponseMessage = await groqService.sendMessage(messages);
 
 		// add the message pair to history
 		chatHistoryService.addMessage(userId, userMessage, "user");
 		chatHistoryService.addMessage(userId, chatResponseMessage, "assistant");
 
-		telegramService.sendMessage(userId, chatResponseMessage);
-
-		console.log("Tokens used:", chatResponse.usage?.total_tokens);
-		console.log("Response time:", chatResponse.usage?.total_time);
+		await telegramService.sendMessage(userId, chatResponseMessage);
 	} catch (error) {
 		console.error("Internal error:", error);
 	}
