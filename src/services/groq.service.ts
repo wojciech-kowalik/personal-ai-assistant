@@ -1,5 +1,4 @@
 import { Groq } from "groq-sdk";
-import { Uploadable } from "groq-sdk/uploads.mjs";
 
 export type ChatCompletionMessages =
 	Groq.Chat.Completions.ChatCompletionMessageParam;

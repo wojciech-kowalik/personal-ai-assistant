@@ -1,7 +1,6 @@
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
-import fs from "fs";
 import TelegramService from "@/services/telegram.service";
 import GroqService, {
 	type ChatCompletionMessages,
