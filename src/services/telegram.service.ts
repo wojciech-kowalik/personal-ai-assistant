@@ -65,9 +65,7 @@ class TelegramService {
 			parse_mode?: ParseMode;
 			disable_notification?: boolean;
 			protect_content?: boolean;
-		} = {
-			parse_mode: "Markdown",
-		},
+		} = {},
 	): Promise<ReturnType<typeof this.bot.api.sendMessage>> {
 		return this.bot.api.sendMessage(chatId, text, options);
 	}
@@ -84,8 +82,16 @@ class TelegramService {
 	 * Register a handler for image data
 	 * @param callback Function to call when a data are received
 	 */
-	public onImageData(callback: (ctx: Context) => void): void {
+	public onImageMessage(callback: (ctx: Context) => void): void {
 		this.bot.on("message:photo", callback);
+	}
+
+	/**
+	 * Register a handler for video messages
+	 * @param callback Function to call when a voice message is received
+	 */
+	public onVoiceMessage(callback: (ctx: Context) => void): void {
+		this.bot.on("message:voice", callback);
 	}
 
 	/**
@@ -137,6 +143,22 @@ class TelegramService {
 			console.error("Error validating image type:", error);
 			return false;
 		}
+	}
+
+	/**
+	 * Checks if a voice file size is within the acceptable limit (1MB)\
+	 * @param fileSize number
+	 * @param megabytes number - default is 1MB
+	 * @returns boolean
+	 */
+	public isVoiceFileSizeValid(fileSize?: number, megabytes = 1): boolean {
+		const MAX_VOICE_FILE_SIZE = megabytes * 1024 * 1024;
+
+		if (!fileSize) {
+			return true;
+		}
+
+		return fileSize <= MAX_VOICE_FILE_SIZE;
 	}
 
 	async getFileUrl(fileId: string): Promise<string | null> {
