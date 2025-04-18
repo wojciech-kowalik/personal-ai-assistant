@@ -166,7 +166,7 @@ telegramService.onImageMessage(async (ctx) => {
 		const chatResponseMessage = await groqService.sendMessage(messages);
 		await telegramService.sendMessage(chatId, chatResponseMessage);
 	} catch (error) {
-		console.error("Error processing image:", error);
+		console.error("Error processing the image:", error);
 		telegramService.sendMessage(
 			chatId,
 			"Error processing the image. Please try again.",
@@ -238,7 +238,11 @@ telegramService.onVoiceMessage(async (ctx) => {
 		const chatResponseMessage = await groqService.sendMessage(messages);
 		await telegramService.sendMessage(chatId, chatResponseMessage);
 	} catch (error) {
-		console.error("Error processing voice message:", error);
+		console.error("Error processing the voice message:", error);
+		telegramService.sendMessage(
+			chatId,
+			"Error processing the voice. Please try again.",
+		);
 	}
 });
 
@@ -274,7 +278,11 @@ telegramService.onTextMessage(async (ctx) => {
 
 		await telegramService.sendMessage(userId, chatResponseMessage);
 	} catch (error) {
-		console.error("Internal error:", error);
+		console.error("Error processing the text message:", error);
+		telegramService.sendMessage(
+			chatId,
+			"Error processing the text message. Please try again.",
+		);
 	}
 });
 
