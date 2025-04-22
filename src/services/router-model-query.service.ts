@@ -15,18 +15,14 @@ class RouterModelQueryService {
 	private tavilyClient: TavilyService;
 	private groqClient: GroqService;
 	private toolHandler: ToolHandler;
-	private history: ChatCompletionMessages[];
+	private history: ChatCompletionMessages[] = [];
 
 	private tools: ChatCompletionOptions["tools"] = [];
 
-	constructor(
-		groqClient: GroqService,
-		tavilyClient: TavilyService,
-		history: ChatCompletionMessages[],
-	) {
+	constructor(groqClient: GroqService, tavilyClient: TavilyService) {
 		this.groqClient = groqClient;
 		this.tavilyClient = tavilyClient;
-		this.history = history;
+		this.history = [];
 
 		this.tools = [
 			ToolFactory.create("search_web"),
@@ -227,6 +223,14 @@ class RouterModelQueryService {
 				`Failed to route query: ${error instanceof Error ? error.message : String(error)}`,
 			);
 		}
+	}
+
+	/**
+	 *
+	 * @param history ChatCompletionMessages[]
+	 */
+	setHistory(history: ChatCompletionMessages[]) {
+		this.history = history;
 	}
 }
 

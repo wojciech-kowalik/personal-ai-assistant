@@ -35,6 +35,10 @@ const groqService = new GroqService(groqAPIKey);
 const telegramService = new TelegramService(telegramBotToken);
 const tavilyService = new TavilyService(tavilyAPIKey);
 const chatHistoryService = new ChatHistoryService();
+const routerModelQueryService = new RouterModelQueryService(
+	groqService,
+	tavilyService,
+);
 
 telegramService.startPolling();
 
@@ -255,19 +259,14 @@ telegramService.onTextMessage(async (ctx) => {
 	try {
 		const userId = ctx.message?.from?.id.toString() || chatId!;
 		const userMessage = ctx?.message?.text || "";
-		const userHistory = chatHistoryService.getHistory(userId);
-
-		const routerModelQueryService = new RouterModelQueryService(
-			groqService,
-			tavilyService,
-			userHistory,
-		);
+		const history = chatHistoryService.getHistory(userId);
 
 		await telegramService.sendMessage(
 			userId,
 			"🤖 I am executing text answering ...",
 		);
 
+		routerModelQueryService.setHistory(history);
 		const chatResponseMessage =
 			await routerModelQueryService.sendMessage(userMessage);
 
