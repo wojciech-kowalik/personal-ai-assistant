@@ -1,4 +1,4 @@
-import { TavilyService, GroqService } from "@/services";
+import { TavilyService, GroqService, ChatHistoryService } from "@/services";
 import { ToolHandler } from "@/handlers/tool.handler";
 import { ToolFactory } from "@/factories/tool.factory";
 import { systemPrompt, systemPromptWithTools, routingPrompt } from "@/prompts";
@@ -7,19 +7,26 @@ import {
 	QueryResult,
 	ChatCompletionOptions,
 	ChatMessage,
+	ChatCompletionMessages,
 } from "@/app/types";
 import { DEFAULT_MODEL, ROUTING_MODEL, TOOL_USE_MODEL } from "@/app/constants";
 
-class RouterModelQuery {
+class RouterModelQueryService {
 	private tavilyClient: TavilyService;
 	private groqClient: GroqService;
 	private toolHandler: ToolHandler;
+	private history: ChatCompletionMessages[];
 
 	private tools: ChatCompletionOptions["tools"] = [];
 
-	constructor(groqClient: GroqService, tavilyClient: TavilyService) {
+	constructor(
+		groqClient: GroqService,
+		tavilyClient: TavilyService,
+		history: ChatCompletionMessages[],
+	) {
 		this.groqClient = groqClient;
 		this.tavilyClient = tavilyClient;
+		this.history = history;
 
 		this.tools = [
 			ToolFactory.create("search_web"),
@@ -70,6 +77,7 @@ class RouterModelQuery {
 			if (toolNeeded) {
 				const usedTools: string[] = [];
 				const response = await this.runWithTools(query, usedTools);
+
 				return {
 					content: response,
 					usedTools: usedTools.length > 0 ? usedTools : undefined,
@@ -104,6 +112,7 @@ class RouterModelQuery {
 					role: "system",
 					content: systemPromptWithTools,
 				},
+				...this.history,
 				{
 					role: "user",
 					content: query,
@@ -182,11 +191,13 @@ class RouterModelQuery {
 	private async runGeneral(query: string): Promise<string> {
 		try {
 			this.groqClient.setDefaultModel(DEFAULT_MODEL);
+
 			const response = await this.groqClient.sendMessage([
 				{
 					role: "system",
 					content: systemPrompt,
 				},
+				...this.history,
 				{
 					role: "user",
 					content: query,
@@ -219,4 +230,4 @@ class RouterModelQuery {
 	}
 }
 
-export { RouterModelQuery };
+export { RouterModelQueryService };

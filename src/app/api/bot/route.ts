@@ -1,34 +1,42 @@
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
-import { TelegramService } from "@/services/telegram.service";
-import { GroqService } from "@/services/groq.service";
-import { ChatHistoryService } from "@/services/chat-history.service";
+import {
+	TelegramService,
+	GroqService,
+	TavilyService,
+	ChatHistoryService,
+	RouterModelQueryService,
+} from "@/services";
 import { promptDefault as systemPrompt } from "@/prompts/system.prompt";
 import { ChatCompletionMessages } from "@/app/types";
 import { DEFAULT_MODEL, IMAGE_MODEL } from "@/app/constants";
+
 //import { webhookCallback } from "grammy";
 
-const token = process.env.TELEGRAM_BOT_TOKEN;
+const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
+const groqAPIKey = process.env.GROQ_API_KEY;
+const tavilyAPIKey = process.env.TAVILY_API_KEY;
 const chatId = process.env.TELEGRAM_CHAT_ID;
-const apiKey = process.env.GROQ_API_KEY;
 
-if (!token)
+if (!telegramBotToken)
 	throw new Error("TELEGRAM_BOT_TOKEN environment variable not found.");
+
+if (!groqAPIKey)
+	throw new Error("GROQ_API_KEY is required but was not provided.");
+
+if (!tavilyAPIKey)
+	throw new Error("TAVILY_API_KEY is required but was not provided.");
 
 if (!chatId)
 	throw new Error("TELEGRAM_CHAT_ID environment variable not found.");
 
-if (!apiKey) {
-	throw new Error("GROQ_API_KEY is required but was not provided.");
-}
-
-const groqService = new GroqService(apiKey);
-
-const telegramService = new TelegramService(token);
-telegramService.startPolling();
-
+const groqService = new GroqService(groqAPIKey);
+const telegramService = new TelegramService(telegramBotToken);
+const tavilyService = new TavilyService(tavilyAPIKey);
 const chatHistoryService = new ChatHistoryService();
+
+telegramService.startPolling();
 
 /**
  * Command to start the bot and reset chat history
@@ -249,24 +257,19 @@ telegramService.onTextMessage(async (ctx) => {
 		const userMessage = ctx?.message?.text || "";
 		const userHistory = chatHistoryService.getHistory(userId);
 
+		const routerModelQueryService = new RouterModelQueryService(
+			groqService,
+			tavilyService,
+			userHistory,
+		);
+
 		await telegramService.sendMessage(
 			userId,
 			"🤖 I am executing text answering ...",
 		);
 
-		const messages: ChatCompletionMessages[] = [
-			{
-				role: "system",
-				content: systemPrompt,
-			},
-			...userHistory,
-			{
-				role: "user",
-				content: userMessage,
-			},
-		];
-
-		const chatResponseMessage = await groqService.sendMessage(messages);
+		const chatResponseMessage =
+			await routerModelQueryService.sendMessage(userMessage);
 
 		// add the message pair to history
 		chatHistoryService.addMessage(userId, userMessage, "user");
