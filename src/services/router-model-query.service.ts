@@ -1,4 +1,4 @@
-import { TavilyService, GroqService, ChatHistoryService } from "@/services";
+import { TavilyService, GroqService } from "@/services";
 import { ToolHandler } from "@/handlers/tool.handler";
 import { ToolFactory } from "@/factories/tool.factory";
 import { systemPrompt, systemPromptWithTools, routingPrompt } from "@/prompts";
