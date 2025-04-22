@@ -29,6 +29,11 @@ class RouterModelQuery {
 		this.toolHandler.registerHandlers();
 	}
 
+	/**
+	 * Determine the tool needed for the query
+	 * @param query string
+	 * @returns  Promise<ToolType | null>
+	 */
 	private async determineToolNeeded(query: string): Promise<ToolType | null> {
 		try {
 			const response = await this.groqClient.sendMessage([
@@ -51,7 +56,12 @@ class RouterModelQuery {
 		}
 	}
 
-	async processQuery(query: string): Promise<QueryResult> {
+	/**
+	 * Process the query and determine if a tool is needed
+	 * @param query string
+	 * @returns Promise<QueryResult>
+	 */
+	private async processQuery(query: string): Promise<QueryResult> {
 		try {
 			const toolNeeded = await this.determineToolNeeded(query);
 
@@ -76,7 +86,16 @@ class RouterModelQuery {
 		}
 	}
 
-	async runWithTools(query: string, usedTools: string[] = []): Promise<string> {
+	/**
+	 * Run the query with the specified tools
+	 * @param query string
+	 * @param usedTools string[]
+	 * @returns Promise<string>
+	 */
+	private async runWithTools(
+		query: string,
+		usedTools: string[] = [],
+	): Promise<string> {
 		try {
 			const messages: ChatMessage[] = [
 				{
@@ -97,7 +116,7 @@ class RouterModelQuery {
 				},
 			);
 
-			let responseMessage = chatCompletion.choices[0].message;
+			const responseMessage = chatCompletion.choices[0].message;
 
 			if (responseMessage.tool_calls && responseMessage.tool_calls.length > 0) {
 				for (const toolCall of responseMessage.tool_calls) {
@@ -151,7 +170,12 @@ class RouterModelQuery {
 		}
 	}
 
-	async runGeneral(query: string): Promise<string> {
+	/**
+	 * Run the query without tools
+	 * @param query string
+	 * @returns Promise<string>
+	 */
+	private async runGeneral(query: string): Promise<string> {
 		try {
 			const response = await this.groqClient.sendMessage([
 				{
@@ -172,6 +196,11 @@ class RouterModelQuery {
 			);
 		}
 	}
+	/**
+	 * Send a message to the router model
+	 * @param query string
+	 * @returns Promise<string>
+	 */
 	async sendMessage(query: string): Promise<string> {
 		try {
 			const result = await this.processQuery(query);

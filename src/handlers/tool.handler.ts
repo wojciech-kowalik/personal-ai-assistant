@@ -21,7 +21,7 @@ class ToolHandler {
 				const result = new Function(`return ${args.expression}`)();
 				return JSON.stringify({ result });
 			} catch (error) {
-				return JSON.stringify({ error: "Invalid expression" });
+				return JSON.stringify({ error });
 			}
 		});
 	}
