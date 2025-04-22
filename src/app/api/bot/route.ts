@@ -6,6 +6,7 @@ import { GroqService } from "@/services/groq.service";
 import { ChatHistoryService } from "@/services/chat-history.service";
 import { promptDefault as systemPrompt } from "@/prompts/system.prompt";
 import { ChatCompletionMessages } from "@/app/types";
+import { DEFAULT_MODEL, IMAGE_MODEL } from "@/app/constants";
 //import { webhookCallback } from "grammy";
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -159,9 +160,7 @@ telegramService.onImageMessage(async (ctx) => {
 			},
 		];
 
-		groqService.setDefaultModel(
-			"meta-llama/llama-4-maverick-17b-128e-instruct",
-		);
+		groqService.setDefaultModel(IMAGE_MODEL);
 		const chatResponseMessage = await groqService.sendMessage(messages);
 		await telegramService.sendMessage(chatId, chatResponseMessage);
 	} catch (error) {
@@ -215,7 +214,6 @@ telegramService.onVoiceMessage(async (ctx) => {
 			return;
 		}
 
-		groqService.setDefaultModel("whisper-large-v3-turbo");
 		const transcription = await groqService.createAudioTranscription(fileUrl, {
 			language: "en",
 		});
@@ -233,7 +231,7 @@ telegramService.onVoiceMessage(async (ctx) => {
 			},
 		];
 
-		groqService.setDefaultModel("gemma2-9b-it");
+		groqService.setDefaultModel(DEFAULT_MODEL);
 		const chatResponseMessage = await groqService.sendMessage(messages);
 		await telegramService.sendMessage(chatId, chatResponseMessage);
 	} catch (error) {
@@ -268,7 +266,6 @@ telegramService.onTextMessage(async (ctx) => {
 			},
 		];
 
-		groqService.setDefaultModel("gemma2-9b-it");
 		const chatResponseMessage = await groqService.sendMessage(messages);
 
 		// add the message pair to history

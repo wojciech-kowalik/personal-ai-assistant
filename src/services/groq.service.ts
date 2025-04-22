@@ -5,13 +5,14 @@ import {
 	ChatCompletionOptions,
 	TranscriptionCreateParams,
 } from "@/app/types";
+import { AUDIO_TRANSCRIPTION_MODEL, DEFAULT_MODEL } from "@/app/constants";
 
 /**
  * Service for interacting with the Groq API for LLM completions
  */
 class GroqService {
 	private client: Groq;
-	private defaultModel: string = "llama-3.3-70b-versatile";
+	private defaultModel: string = DEFAULT_MODEL;
 
 	/**
 	 * Initialize the Groq service with an API key
@@ -68,7 +69,7 @@ class GroqService {
 		url: string,
 		options: TranscriptionCreateParams,
 	) {
-		const { model = this.defaultModel, language } = options;
+		const { model = AUDIO_TRANSCRIPTION_MODEL, language } = options;
 
 		try {
 			return await this.client.audio.transcriptions.create({

@@ -8,6 +8,7 @@ import {
 	ChatCompletionOptions,
 	ChatMessage,
 } from "@/app/types";
+import { DEFAULT_MODEL, ROUTING_MODEL, TOOL_USE_MODEL } from "@/app/constants";
 
 class RouterModelQuery {
 	private tavilyClient: TavilyService;
@@ -36,6 +37,7 @@ class RouterModelQuery {
 	 */
 	private async determineToolNeeded(query: string): Promise<ToolType | null> {
 		try {
+			this.groqClient.setDefaultModel(ROUTING_MODEL);
 			const response = await this.groqClient.sendMessage([
 				{
 					role: "user",
@@ -108,6 +110,7 @@ class RouterModelQuery {
 				},
 			];
 
+			this.groqClient.setDefaultModel(TOOL_USE_MODEL);
 			const chatCompletion = await this.groqClient.createChatCompletion(
 				messages,
 				{
@@ -156,6 +159,7 @@ class RouterModelQuery {
 					}
 				}
 
+				this.groqClient.setDefaultModel(TOOL_USE_MODEL);
 				const finalResponse = await this.groqClient.sendMessage(messages);
 
 				return finalResponse || "No response generated";
@@ -177,6 +181,7 @@ class RouterModelQuery {
 	 */
 	private async runGeneral(query: string): Promise<string> {
 		try {
+			this.groqClient.setDefaultModel(DEFAULT_MODEL);
 			const response = await this.groqClient.sendMessage([
 				{
 					role: "system",
