@@ -1,22 +1,10 @@
 import { Groq } from "groq-sdk";
 
-export type ChatCompletionMessages =
-	Groq.Chat.Completions.ChatCompletionMessageParam;
-
-export interface TranscriptionCreateParams {
-	model?: string;
-	language?: string;
-	sampleRate?: number;
-}
-
-export interface ChatCompletionOptions {
-	model?: string;
-	maxTokens?: number;
-	temperature?: number;
-	topP?: number;
-	stop?: string[];
-	stream?: boolean;
-}
+import {
+	ChatCompletionMessages,
+	ChatCompletionOptions,
+	TranscriptionCreateParams,
+} from "@/app/types";
 
 /**
  * Service for interacting with the Groq API for LLM completions
@@ -49,6 +37,8 @@ class GroqService {
 			temperature,
 			topP,
 			stop,
+			tools,
+			toolChoice,
 		} = options;
 
 		try {
@@ -60,6 +50,8 @@ class GroqService {
 				top_p: topP,
 				stop: stop,
 				stream: false,
+				tools,
+				tool_choice: toolChoice,
 			});
 		} catch (error) {
 			console.error("Error creating chat completion:", error);
@@ -90,9 +82,12 @@ class GroqService {
 		}
 	}
 
+	/**
+	 * @param messages ChatCompletionMessages[]
+	 * @returns string
+	 */
 	public async sendMessage(messages: ChatCompletionMessages[]) {
 		const chatResponse = await this.createChatCompletion(messages, {
-			temperature: 0.7,
 			maxTokens: 300,
 		});
 
@@ -130,4 +125,4 @@ class GroqService {
 	}
 }
 
-export default GroqService;
+export { GroqService };

@@ -1,0 +1,188 @@
+import { TavilyService, GroqService } from "@/services";
+import { ToolHandler } from "@/handlers/tool.handler";
+import { ToolFactory } from "@/factories/tool.factory";
+import { systemPrompt, systemPromptWithTools, routingPrompt } from "@/prompts";
+import {
+	ToolType,
+	QueryResult,
+	ChatCompletionOptions,
+	ChatMessage,
+} from "@/app/types";
+
+class RouterModelQuery {
+	private tavilyClient: TavilyService;
+	private groqClient: GroqService;
+	private toolHandler: ToolHandler;
+
+	private tools: ChatCompletionOptions["tools"] = [];
+
+	constructor(groqClient: GroqService, tavilyClient: TavilyService) {
+		this.groqClient = groqClient;
+		this.tavilyClient = tavilyClient;
+
+		this.tools = [
+			ToolFactory.create("search_web"),
+			ToolFactory.create("calculator"),
+		];
+
+		this.toolHandler = new ToolHandler(this.tavilyClient);
+		this.toolHandler.registerHandlers();
+	}
+
+	private async determineToolNeeded(query: string): Promise<ToolType | null> {
+		try {
+			const response = await this.groqClient.sendMessage([
+				{
+					role: "user",
+					content: routingPrompt(query),
+				},
+			]);
+
+			if (response.includes("TOOL: CALCULATE")) {
+				return "calculator";
+			} else if (response.includes("TOOL: SEARCH")) {
+				return "search_web";
+			} else {
+				return null;
+			}
+		} catch (error) {
+			console.error("Error determining tool:", error);
+			return null;
+		}
+	}
+
+	async processQuery(query: string): Promise<QueryResult> {
+		try {
+			const toolNeeded = await this.determineToolNeeded(query);
+
+			if (toolNeeded) {
+				const usedTools: string[] = [];
+				const response = await this.runWithTools(query, usedTools);
+				return {
+					content: response,
+					usedTools: usedTools.length > 0 ? usedTools : undefined,
+				};
+			} else {
+				const response = await this.runGeneral(query);
+				return {
+					content: response,
+				};
+			}
+		} catch (error) {
+			console.error("Error processing query:", error);
+			return {
+				content: `Sorry, I encountered an error while processing your request: ${error instanceof Error ? error.message : String(error)}`,
+			};
+		}
+	}
+
+	async runWithTools(query: string, usedTools: string[] = []): Promise<string> {
+		try {
+			const messages: ChatMessage[] = [
+				{
+					role: "system",
+					content: systemPromptWithTools,
+				},
+				{
+					role: "user",
+					content: query,
+				},
+			];
+
+			const chatCompletion = await this.groqClient.createChatCompletion(
+				messages,
+				{
+					tools: this.tools,
+					toolChoice: "auto",
+				},
+			);
+
+			let responseMessage = chatCompletion.choices[0].message;
+
+			if (responseMessage.tool_calls && responseMessage.tool_calls.length > 0) {
+				for (const toolCall of responseMessage.tool_calls) {
+					const toolName = toolCall.function.name as ToolType;
+					usedTools.push(toolName);
+
+					const handler = this.toolHandler.getHandler(toolName);
+
+					if (!handler) {
+						throw new Error(`No handler registered for tool: ${toolName}`);
+					}
+
+					try {
+						const args = JSON.parse(toolCall.function.arguments);
+						const toolResult = await handler(toolName, args);
+
+						messages.push({
+							role: "assistant",
+							content: null,
+							tool_calls: [toolCall],
+						});
+
+						messages.push({
+							role: "tool",
+							tool_call_id: toolCall.id,
+							content: toolResult,
+						});
+					} catch (error) {
+						console.error(`Error calling tool ${toolName}:`, error);
+						messages.push({
+							role: "tool",
+							tool_call_id: toolCall.id,
+							content: JSON.stringify({
+								error: `Tool execution failed: ${error instanceof Error ? error.message : String(error)}`,
+							}),
+						});
+					}
+				}
+
+				const finalResponse = await this.groqClient.sendMessage(messages);
+
+				return finalResponse || "No response generated";
+			}
+
+			return responseMessage.content || "No response generated";
+		} catch (error) {
+			console.error("Error executing query with tools:", error);
+			throw new Error(
+				`Failed to execute query with tools: ${error instanceof Error ? error.message : String(error)}`,
+			);
+		}
+	}
+
+	async runGeneral(query: string): Promise<string> {
+		try {
+			const response = await this.groqClient.sendMessage([
+				{
+					role: "system",
+					content: systemPrompt,
+				},
+				{
+					role: "user",
+					content: query,
+				},
+			]);
+
+			return response || "No response generated";
+		} catch (error) {
+			console.error("Error executing general query:", error);
+			throw new Error(
+				`Failed to execute general query: ${error instanceof Error ? error.message : String(error)}`,
+			);
+		}
+	}
+	async sendMessage(query: string): Promise<string> {
+		try {
+			const result = await this.processQuery(query);
+			return result.content;
+		} catch (error) {
+			console.error("Error routing query:", error);
+			throw new Error(
+				`Failed to route query: ${error instanceof Error ? error.message : String(error)}`,
+			);
+		}
+	}
+}
+
+export { RouterModelQuery };

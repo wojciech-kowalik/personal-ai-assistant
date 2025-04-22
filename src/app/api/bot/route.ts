@@ -1,14 +1,13 @@
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
-import TelegramService from "@/services/telegram.service";
-import GroqService, {
-	type ChatCompletionMessages,
-} from "@/services/groq.service";
-import ChatHistoryService from "@/services/chat-history.service";
+import { TelegramService } from "@/services/telegram.service";
+import { GroqService } from "@/services/groq.service";
+import { ChatHistoryService } from "@/services/chat-history.service";
+import { promptDefault as systemPrompt } from "@/prompts/system.prompt";
+import { ChatCompletionMessages } from "@/app/types";
 //import { webhookCallback } from "grammy";
 
-const systemContent = "You are a helpful AI assistant. ";
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const chatId = process.env.TELEGRAM_CHAT_ID;
 const apiKey = process.env.GROQ_API_KEY;
@@ -226,7 +225,7 @@ telegramService.onVoiceMessage(async (ctx) => {
 		const messages: ChatCompletionMessages[] = [
 			{
 				role: "system",
-				content: systemContent,
+				content: systemPrompt,
 			},
 			{
 				role: "user",
@@ -260,7 +259,7 @@ telegramService.onTextMessage(async (ctx) => {
 		const messages: ChatCompletionMessages[] = [
 			{
 				role: "system",
-				content: systemContent,
+				content: systemPrompt,
 			},
 			...userHistory,
 			{

@@ -9,7 +9,7 @@ import {
  * A service for interacting with the Tavily AI Search API using the official SDK
  * @see https://tavily.com/
  */
-export default class TavilyService {
+class TavilyService {
 	private client: TavilyClient;
 
 	/**
@@ -38,29 +38,27 @@ export default class TavilyService {
 	 */
 	async search(
 		query: string,
-		options: TavilySearchOptions,
+		options: TavilySearchOptions = {
+			searchDepth: "basic",
+			maxResults: 4,
+			includeRawContent: false,
+			includeImages: false,
+			excludeDomains: [],
+			includeDomains: [],
+		},
 	): Promise<TavilySearchResponse> {
 		if (!query) {
 			throw new Error("Search query is required");
 		}
 
-		const {
-			searchDepth = "basic",
-			maxResults = 4,
-			includeRawContent = false,
-			includeImages = false,
-			excludeDomains = [],
-			includeDomains = [],
-		} = options;
-
 		try {
 			return await this.client.search(query, {
-				search_depth: searchDepth,
-				max_results: maxResults,
-				include_raw_content: includeRawContent,
-				include_images: includeImages,
-				exclude_domains: excludeDomains,
-				include_domains: includeDomains,
+				search_depth: options.searchDepth,
+				max_results: options.maxResults,
+				include_raw_content: options.includeRawContent,
+				include_images: options.includeImages,
+				exclude_domains: options.excludeDomains,
+				include_domains: options.includeDomains,
 				...options,
 			});
 		} catch (error) {
@@ -71,3 +69,5 @@ export default class TavilyService {
 		}
 	}
 }
+
+export { TavilyService };

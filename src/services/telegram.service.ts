@@ -179,4 +179,4 @@ class TelegramService {
 	}
 }
 
-export default TelegramService;
+export { TelegramService };
