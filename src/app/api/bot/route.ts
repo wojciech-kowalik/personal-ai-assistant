@@ -1,34 +1,46 @@
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
-import TelegramService from "@/services/telegram.service";
-import GroqService, {
-	type ChatCompletionMessages,
-} from "@/services/groq.service";
-import ChatHistoryService from "@/services/chat-history.service";
+import {
+	TelegramService,
+	GroqService,
+	TavilyService,
+	ChatHistoryService,
+	RouterModelQueryService,
+} from "@/services";
+import { promptDefault as systemPrompt } from "@/prompts/system.prompt";
+import { ChatCompletionMessages } from "@/app/types";
+import { DEFAULT_MODEL, IMAGE_MODEL } from "@/app/constants";
+
 //import { webhookCallback } from "grammy";
 
-const systemContent = "You are a helpful AI assistant. ";
-const token = process.env.TELEGRAM_BOT_TOKEN;
+const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
+const groqAPIKey = process.env.GROQ_API_KEY;
+const tavilyAPIKey = process.env.TAVILY_API_KEY;
 const chatId = process.env.TELEGRAM_CHAT_ID;
-const apiKey = process.env.GROQ_API_KEY;
 
-if (!token)
+if (!telegramBotToken)
 	throw new Error("TELEGRAM_BOT_TOKEN environment variable not found.");
+
+if (!groqAPIKey)
+	throw new Error("GROQ_API_KEY is required but was not provided.");
+
+if (!tavilyAPIKey)
+	throw new Error("TAVILY_API_KEY is required but was not provided.");
 
 if (!chatId)
 	throw new Error("TELEGRAM_CHAT_ID environment variable not found.");
 
-if (!apiKey) {
-	throw new Error("GROQ_API_KEY is required but was not provided.");
-}
-
-const groqService = new GroqService(apiKey);
-
-const telegramService = new TelegramService(token);
-telegramService.startPolling();
-
+const groqService = new GroqService(groqAPIKey);
+const telegramService = new TelegramService(telegramBotToken);
+const tavilyService = new TavilyService(tavilyAPIKey);
 const chatHistoryService = new ChatHistoryService();
+const routerModelQueryService = new RouterModelQueryService(
+	groqService,
+	tavilyService,
+);
+
+telegramService.startPolling();
 
 /**
  * Command to start the bot and reset chat history
@@ -160,13 +172,11 @@ telegramService.onImageMessage(async (ctx) => {
 			},
 		];
 
-		groqService.setDefaultModel(
-			"meta-llama/llama-4-maverick-17b-128e-instruct",
-		);
+		groqService.setDefaultModel(IMAGE_MODEL);
 		const chatResponseMessage = await groqService.sendMessage(messages);
 		await telegramService.sendMessage(chatId, chatResponseMessage);
 	} catch (error) {
-		console.error("Error processing image:", error);
+		console.error("Error processing the image:", error);
 		telegramService.sendMessage(
 			chatId,
 			"Error processing the image. Please try again.",
@@ -216,7 +226,6 @@ telegramService.onVoiceMessage(async (ctx) => {
 			return;
 		}
 
-		groqService.setDefaultModel("whisper-large-v3-turbo");
 		const transcription = await groqService.createAudioTranscription(fileUrl, {
 			language: "en",
 		});
@@ -226,7 +235,7 @@ telegramService.onVoiceMessage(async (ctx) => {
 		const messages: ChatCompletionMessages[] = [
 			{
 				role: "system",
-				content: systemContent,
+				content: systemPrompt,
 			},
 			{
 				role: "user",
@@ -234,11 +243,15 @@ telegramService.onVoiceMessage(async (ctx) => {
 			},
 		];
 
-		groqService.setDefaultModel("gemma2-9b-it");
+		groqService.setDefaultModel(DEFAULT_MODEL);
 		const chatResponseMessage = await groqService.sendMessage(messages);
 		await telegramService.sendMessage(chatId, chatResponseMessage);
 	} catch (error) {
-		console.error("Error processing voice message:", error);
+		console.error("Error processing the voice message:", error);
+		telegramService.sendMessage(
+			chatId,
+			"Error processing the voice. Please try again.",
+		);
 	}
 });
 
@@ -246,27 +259,16 @@ telegramService.onTextMessage(async (ctx) => {
 	try {
 		const userId = ctx.message?.from?.id.toString() || chatId!;
 		const userMessage = ctx?.message?.text || "";
-		const userHistory = chatHistoryService.getHistory(userId);
+		const history = chatHistoryService.getHistory(userId);
 
 		await telegramService.sendMessage(
 			userId,
 			"🤖 I am executing text answering ...",
 		);
 
-		const messages: ChatCompletionMessages[] = [
-			{
-				role: "system",
-				content: systemContent,
-			},
-			...userHistory,
-			{
-				role: "user",
-				content: userMessage,
-			},
-		];
-
-		groqService.setDefaultModel("gemma2-9b-it");
-		const chatResponseMessage = await groqService.sendMessage(messages);
+		routerModelQueryService.setHistory(history);
+		const chatResponseMessage =
+			await routerModelQueryService.sendMessage(userMessage);
 
 		// add the message pair to history
 		chatHistoryService.addMessage(userId, userMessage, "user");
@@ -274,7 +276,11 @@ telegramService.onTextMessage(async (ctx) => {
 
 		await telegramService.sendMessage(userId, chatResponseMessage);
 	} catch (error) {
-		console.error("Internal error:", error);
+		console.error("Error processing the text message:", error);
+		telegramService.sendMessage(
+			chatId,
+			"Error processing the text message. Please try again.",
+		);
 	}
 });
 

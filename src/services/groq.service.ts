@@ -1,29 +1,18 @@
 import { Groq } from "groq-sdk";
 
-export type ChatCompletionMessages =
-	Groq.Chat.Completions.ChatCompletionMessageParam;
-
-export interface TranscriptionCreateParams {
-	model?: string;
-	language?: string;
-	sampleRate?: number;
-}
-
-export interface ChatCompletionOptions {
-	model?: string;
-	maxTokens?: number;
-	temperature?: number;
-	topP?: number;
-	stop?: string[];
-	stream?: boolean;
-}
+import {
+	ChatCompletionMessages,
+	ChatCompletionOptions,
+	TranscriptionCreateParams,
+} from "@/app/types";
+import { AUDIO_TRANSCRIPTION_MODEL, DEFAULT_MODEL } from "@/app/constants";
 
 /**
  * Service for interacting with the Groq API for LLM completions
  */
 class GroqService {
 	private client: Groq;
-	private defaultModel: string = "llama-3.3-70b-versatile";
+	private defaultModel: string = DEFAULT_MODEL;
 
 	/**
 	 * Initialize the Groq service with an API key
@@ -49,6 +38,8 @@ class GroqService {
 			temperature,
 			topP,
 			stop,
+			tools,
+			toolChoice,
 		} = options;
 
 		try {
@@ -60,6 +51,8 @@ class GroqService {
 				top_p: topP,
 				stop: stop,
 				stream: false,
+				tools,
+				tool_choice: toolChoice,
 			});
 		} catch (error) {
 			console.error("Error creating chat completion:", error);
@@ -76,7 +69,7 @@ class GroqService {
 		url: string,
 		options: TranscriptionCreateParams,
 	) {
-		const { model = this.defaultModel, language } = options;
+		const { model = AUDIO_TRANSCRIPTION_MODEL, language } = options;
 
 		try {
 			return await this.client.audio.transcriptions.create({
@@ -90,9 +83,12 @@ class GroqService {
 		}
 	}
 
+	/**
+	 * @param messages ChatCompletionMessages[]
+	 * @returns string
+	 */
 	public async sendMessage(messages: ChatCompletionMessages[]) {
 		const chatResponse = await this.createChatCompletion(messages, {
-			temperature: 0.7,
 			maxTokens: 300,
 		});
 
@@ -130,4 +126,4 @@ class GroqService {
 	}
 }
 
-export default GroqService;
+export { GroqService };

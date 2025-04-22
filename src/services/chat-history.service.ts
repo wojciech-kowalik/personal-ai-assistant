@@ -1,4 +1,4 @@
-import type { ChatCompletionMessages } from "@/services/groq.service";
+import { ChatCompletionMessages } from "@/app/types";
 
 class ChatHistoryService {
 	private chatHistory: Map<string, ChatCompletionMessages[]>;
@@ -43,4 +43,4 @@ class ChatHistoryService {
 	}
 }
 
-export default ChatHistoryService;
+export { ChatHistoryService };
