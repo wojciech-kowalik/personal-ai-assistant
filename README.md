@@ -32,6 +32,26 @@ pnpm start
 pnpm compile
 ```
 
+## Telegram Webhook management
+
+Set Webhook
+
+```bash
+POST https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/setWebhook?url={url_to_send_updates_to}
+```
+
+Get Webhook
+
+```bash
+GET https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getWebhookInfo
+```
+
+Delete Webhook
+
+```bash
+POST https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/setWebhook?url=
+```
+
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme).
