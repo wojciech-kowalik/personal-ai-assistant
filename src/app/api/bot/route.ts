@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
+import { webhookCallback } from "grammy";
 import {
 	TelegramService,
 	GroqService,
@@ -11,8 +12,6 @@ import {
 import { promptDefault as systemPrompt } from "@/prompts/system.prompt";
 import { ChatCompletionMessages } from "@/app/types";
 import { DEFAULT_MODEL, IMAGE_MODEL } from "@/app/constants";
-
-//import { webhookCallback } from "grammy";
 
 const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
 const groqAPIKey = process.env.GROQ_API_KEY;
@@ -40,7 +39,7 @@ const routerModelQueryService = new RouterModelQueryService(
 	tavilyService,
 );
 
-telegramService.startPolling();
+//telegramService.startPolling();
 
 /**
  * Command to start the bot and reset chat history
@@ -284,7 +283,7 @@ telegramService.onTextMessage(async (ctx) => {
 	}
 });
 
-//export const POST = webhookCallback(telegramService.getInstance(), "std/http");
-export async function POST(): Promise<Response> {
-	return new Response("OK");
-}
+export const POST = webhookCallback(telegramService.getInstance(), "std/http");
+// export async function POST(): Promise<Response> {
+// 	return new Response("OK");
+// }
