@@ -9,7 +9,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN pnpm run build
 
-FROM node:18-alpine AS runner
+FROM node:20-slim AS runner
 WORKDIR /app
 
 COPY --from=builder /app/public ./public
