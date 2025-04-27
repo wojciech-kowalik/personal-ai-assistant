@@ -39,8 +39,6 @@ const routerModelQueryService = new RouterModelQueryService(
 	tavilyService,
 );
 
-//telegramService.startPolling();
-
 /**
  * Command to start the bot and reset chat history
  */
@@ -284,6 +282,3 @@ telegramService.onTextMessage(async (ctx) => {
 });
 
 export const POST = webhookCallback(telegramService.getInstance(), "std/http");
-// export async function POST(): Promise<Response> {
-// 	return new Response("OK");
-// }
