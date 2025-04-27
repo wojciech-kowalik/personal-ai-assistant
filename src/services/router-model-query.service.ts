@@ -92,7 +92,6 @@ class RouterModelQueryService {
 	/**
 	 * Run the query with the specified tools
 	 * @param query string
-	 * @param usedTools string[]
 	 * @returns Promise<string>
 	 */
 	private async runWithTools(query: string): Promise<string> {
@@ -102,6 +101,7 @@ class RouterModelQueryService {
 					role: "system",
 					content: systemPromptWithTools,
 				},
+				...this.history,
 				{
 					role: "user",
 					content: query,
