@@ -71,12 +71,9 @@ class RouterModelQueryService {
 			const toolNeeded = await this.determineToolNeeded(query);
 
 			if (toolNeeded) {
-				const usedTools: string[] = [];
-				const response = await this.runWithTools(query, usedTools);
-
+				const response = await this.runWithTools(query);
 				return {
 					content: response,
-					usedTools: usedTools.length > 0 ? usedTools : undefined,
 				};
 			} else {
 				const response = await this.runGeneral(query);
@@ -98,24 +95,20 @@ class RouterModelQueryService {
 	 * @param usedTools string[]
 	 * @returns Promise<string>
 	 */
-	private async runWithTools(
-		query: string,
-		usedTools: string[] = [],
-	): Promise<string> {
+	private async runWithTools(query: string): Promise<string> {
 		try {
 			const messages: ChatMessage[] = [
 				{
 					role: "system",
 					content: systemPromptWithTools,
 				},
-				...this.history,
 				{
 					role: "user",
 					content: query,
 				},
 			];
 
-			this.groqClient.setDefaultModel(TOOL_USE_MODEL);
+			this.groqClient.setDefaultModel(ROUTING_MODEL);
 			const chatCompletion = await this.groqClient.createChatCompletion(
 				messages,
 				{
@@ -129,8 +122,6 @@ class RouterModelQueryService {
 			if (responseMessage.tool_calls && responseMessage.tool_calls.length > 0) {
 				for (const toolCall of responseMessage.tool_calls) {
 					const toolName = toolCall.function.name as ToolType;
-					usedTools.push(toolName);
-
 					const handler = this.toolHandler.getHandler(toolName);
 
 					if (!handler) {
