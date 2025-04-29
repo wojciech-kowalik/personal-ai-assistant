@@ -76,7 +76,6 @@ curl -X GET localhost:3000/api/test
 ## Technologies
 
 - Next.js
-- React
 - TypeScript
 - Grammy for Telegram bot functionality
 - Groq SDK for LLM integration
