@@ -74,3 +74,11 @@ curl -X GET localhost:3000/api/test
 - Grammy for Telegram bot functionality
 - Groq SDK for LLM integration
 - Tavily for search capabilities
+
+  <a href="https://groq.com" target="_blank" rel="noopener noreferrer">
+  <img
+    width="120"
+    src="https://groq.com/wp-content/uploads/2024/03/PBG-mark1-color.svg"
+    alt="Powered by Groq for fast inference."
+  />
+</a>
