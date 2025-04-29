@@ -1,7 +1,14 @@
-# Personal AI Assistant
+# Personal AI Assistant (PAI)
+
+[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
+![Vercel](https://vercelbadge.vercel.app/api/wojciech-kowalik/personal-ai-assistant)
+
+![GitHub package.json dependency version (subfolder of monorepo)](https://img.shields.io/github/package-json/dependency-version/wojciech-kowalik/personal-ai-assistant/next)
+![GitHub package.json dependency version (subfolder of monorepo)](https://img.shields.io/github/package-json/dependency-version/wojciech-kowalik/personal-ai-assistant/groq-sdk)
+![GitHub package.json dependency version (subfolder of monorepo)](https://img.shields.io/github/package-json/dependency-version/wojciech-kowalik/personal-ai-assistant/grammy)
+![GitHub package.json dependency version (subfolder of monorepo)](https://img.shields.io/github/package-json/dependency-version/wojciech-kowalik/personal-ai-assistant/@tavily/core)
 
 This project is a personal AI assistant built with Next.js 15 that leverages several powerful APIs:
-
 - **Groq API** for LLM chat capabilities
 - **Telegram Bot (Grammy)** for messaging interface
 - **Tavily API** for real-time information retrieval and search
