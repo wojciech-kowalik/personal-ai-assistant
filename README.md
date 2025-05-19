@@ -17,7 +17,7 @@ This project is a personal AI assistant built with Next.js 15 that leverages sev
 
 - Conversational AI assistant using Groq's LLM
 - Telegram integration via Grammy
-- Internet connectivity for up-to-date information via Tavily
+- Internet connectivity for up-to-date information via Tavily as a MCP (Model context Protocol) server
 - Deployed as a Next.js application
 
 ## Development
