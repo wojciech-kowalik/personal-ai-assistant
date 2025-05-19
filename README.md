@@ -1,4 +1,4 @@
-# Personal AI Assistant (PAI)
+# Personal AI (PAI)
 
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
 ![Vercel](https://vercelbadge.vercel.app/api/wojciech-kowalik/personal-ai-assistant)
@@ -17,7 +17,7 @@ This project is a personal AI assistant built with Next.js 15 that leverages sev
 
 - Conversational AI assistant using Groq's LLM
 - Telegram integration via Grammy
-- Internet connectivity for up-to-date information via Tavily as a MCP (Model context Protocol) server
+- Internet connectivity for up-to-date information via Tavily as a MCP (Model Context Protocol) server
 - Deployed as a Next.js application
 
 ## Development
