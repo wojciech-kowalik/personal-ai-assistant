@@ -1,4 +1,4 @@
-export const DEFAULT_MODEL = "gemma2-9b-it";
+export const DEFAULT_MODEL = "llama-3.1-8b-instant";
 export const IMAGE_MODEL = "meta-llama/llama-4-maverick-17b-128e-instruct";
 export const AUDIO_TRANSCRIPTION_MODEL = "whisper-large-v3-turbo";
 
