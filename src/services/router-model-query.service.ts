@@ -104,79 +104,115 @@ class RouterModelQueryService {
 	 * @returns Promise<string>
 	 */
 	private async runWithTools(query: string): Promise<string> {
-		try {
-			const messages: ChatMessage[] = [
-				{
-					role: "system",
-					content: systemPromptWithTools,
-				},
-				...this.history,
-				{
-					role: "user",
-					content: query,
-				},
-			];
+		const maxRetries = 4;
+		let lastError: Error | null = null;
 
-			this.groqClient.setDefaultModel(ROUTING_MODEL);
-			const chatCompletion = await this.groqClient.createChatCompletion(
-				messages,
-				{
-					tools: this.tools,
-					toolChoice: "auto",
-				},
-			);
+		// Retry loop for handling malformed tool calls
+		for (let attempt = 0; attempt < maxRetries; attempt++) {
+			try {
+				const messages: ChatMessage[] = [
+					{
+						role: "system",
+						content: systemPromptWithTools,
+					},
+					...this.history,
+					{
+						role: "user",
+						content: query,
+					},
+				];
 
-			const responseMessage = chatCompletion.choices[0].message;
+				this.groqClient.setDefaultModel(ROUTING_MODEL);
+				const chatCompletion = await this.groqClient.createChatCompletion(
+					messages,
+					{
+						tools: this.tools,
+						toolChoice: "auto",
+					},
+				);
 
-			if (responseMessage.tool_calls && responseMessage.tool_calls.length > 0) {
-				for (const toolCall of responseMessage.tool_calls) {
-					const toolName = toolCall.function.name as ToolType;
-					const handler = this.toolHandler.getHandler(toolName);
+				const responseMessage = chatCompletion.choices[0].message;
 
-					if (!handler) {
-						throw new Error(`No handler registered for tool: ${toolName}`);
+				if (
+					responseMessage.tool_calls &&
+					responseMessage.tool_calls.length > 0
+				) {
+					for (const toolCall of responseMessage.tool_calls) {
+						const toolName = toolCall.function.name as ToolType;
+						const handler = this.toolHandler.getHandler(toolName);
+
+						if (!handler) {
+							throw new Error(`No handler registered for tool: ${toolName}`);
+						}
+
+						try {
+							const args = JSON.parse(toolCall.function.arguments);
+							const toolResult = await handler(toolName, args);
+
+							messages.push({
+								role: "assistant",
+								content: null,
+								tool_calls: [toolCall],
+							});
+
+							messages.push({
+								role: "tool",
+								tool_call_id: toolCall.id,
+								content: toolResult,
+							});
+						} catch (error) {
+							console.error(`Error calling tool ${toolName}:`, error);
+							messages.push({
+								role: "tool",
+								tool_call_id: toolCall.id,
+								content: JSON.stringify({
+									error: `Tool execution failed: ${error instanceof Error ? error.message : String(error)}`,
+								}),
+							});
+						}
 					}
 
-					try {
-						const args = JSON.parse(toolCall.function.arguments);
-						const toolResult = await handler(toolName, args);
+					this.groqClient.setDefaultModel(TOOL_USE_MODEL);
+					const finalResponse = await this.groqClient.sendMessage(messages);
 
-						messages.push({
-							role: "assistant",
-							content: null,
-							tool_calls: [toolCall],
-						});
-
-						messages.push({
-							role: "tool",
-							tool_call_id: toolCall.id,
-							content: toolResult,
-						});
-					} catch (error) {
-						console.error(`Error calling tool ${toolName}:`, error);
-						messages.push({
-							role: "tool",
-							tool_call_id: toolCall.id,
-							content: JSON.stringify({
-								error: `Tool execution failed: ${error instanceof Error ? error.message : String(error)}`,
-							}),
-						});
-					}
+					return finalResponse || "No response generated";
 				}
 
-				this.groqClient.setDefaultModel(TOOL_USE_MODEL);
-				const finalResponse = await this.groqClient.sendMessage(messages);
+				return responseMessage.content || "No response generated";
+			} catch (error) {
+				lastError = error instanceof Error ? error : new Error(String(error));
 
-				return finalResponse || "No response generated";
+				// Check if it's a tool_use_failed error
+				const errorMessage = lastError.message.toLowerCase();
+				if (
+					errorMessage.includes("tool_use_failed") ||
+					errorMessage.includes("failed to call a function")
+				) {
+					console.warn(
+						`Tool use failed on attempt ${attempt + 1}/${maxRetries}:`,
+						lastError.message,
+					);
+
+					// On last retry, fall back to general query
+					if (attempt === maxRetries - 1) {
+						console.log("Falling back to general query after tool failures");
+						return await this.runGeneral(query);
+					}
+
+					// Wait a bit before retrying
+					await new Promise((resolve) => setTimeout(resolve, 500));
+					continue;
+				}
+
+				// For other errors, throw immediately
+				throw lastError;
 			}
-
-			return responseMessage.content || "No response generated";
-		} catch (error) {
-			console.error("Error executing query with tools:", error);
-			throw new Error(
-				`Failed to execute query with tools: ${error instanceof Error ? error.message : String(error)}`,
-			);
 		}
+
+		// If we exhausted retries, throw the last error
+		throw (
+			lastError || new Error("Failed to execute query with tools after retries")
+		);
 	}
 
 	/**
