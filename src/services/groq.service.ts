@@ -88,9 +88,7 @@ class GroqService {
 	 * @returns string
 	 */
 	public async sendMessage(messages: ChatCompletionMessages[]) {
-		const chatResponse = await this.createChatCompletion(messages, {
-			maxTokens: 300,
-		});
+		const chatResponse = await this.createChatCompletion(messages);
 
 		return chatResponse.choices[0]?.message?.content || "";
 	}
