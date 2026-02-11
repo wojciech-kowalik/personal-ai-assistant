@@ -51,25 +51,17 @@ class RouterModelQueryService {
 			// Normalize response for better matching
 			const normalizedResponse = response.trim().toUpperCase();
 
-			// Log for debugging
-			console.log("[ROUTER] Query:", query);
-			console.log("[ROUTER] Response:", response);
-			console.log("[ROUTER] Normalized:", normalizedResponse);
-
 			if (
 				normalizedResponse.includes("TOOL: CALCULATE") ||
 				normalizedResponse.includes("CALCULATE")
 			) {
-				console.log("[ROUTER] Selected: calculator");
 				return "calculator";
 			} else if (
 				normalizedResponse.includes("TOOL: SEARCH") ||
 				normalizedResponse.includes("SEARCH")
 			) {
-				console.log("[ROUTER] Selected: search_web");
 				return "search_web";
 			} else {
-				console.log("[ROUTER] Selected: no tool");
 				return null;
 			}
 		} catch (error) {
@@ -87,16 +79,12 @@ class RouterModelQueryService {
 		try {
 			const toolNeeded = await this.determineToolNeeded(query);
 
-			console.log("[PROCESS] Tool needed:", toolNeeded);
-
 			if (toolNeeded) {
-				console.log("[PROCESS] Running with tools...");
 				const response = await this.runWithTools(query);
 				return {
 					content: response,
 				};
 			} else {
-				console.log("[PROCESS] Running general query...");
 				const response = await this.runGeneral(query);
 				return {
 					content: response,
@@ -140,18 +128,9 @@ class RouterModelQueryService {
 
 			const responseMessage = chatCompletion.choices[0].message;
 
-			console.log("[TOOLS] Response message:", responseMessage);
-			console.log(
-				"[TOOLS] Tool calls:",
-				responseMessage.tool_calls?.length || 0,
-			);
-
 			if (responseMessage.tool_calls && responseMessage.tool_calls.length > 0) {
 				for (const toolCall of responseMessage.tool_calls) {
 					const toolName = toolCall.function.name as ToolType;
-					console.log("[TOOLS] Calling tool:", toolName);
-					console.log("[TOOLS] Tool arguments:", toolCall.function.arguments);
-
 					const handler = this.toolHandler.getHandler(toolName);
 
 					if (!handler) {
@@ -161,7 +140,6 @@ class RouterModelQueryService {
 					try {
 						const args = JSON.parse(toolCall.function.arguments);
 						const toolResult = await handler(toolName, args);
-						console.log("[TOOLS] Tool result:", toolResult);
 
 						messages.push({
 							role: "assistant",
