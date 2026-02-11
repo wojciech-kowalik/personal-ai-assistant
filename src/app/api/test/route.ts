@@ -35,11 +35,13 @@ export async function GET(): Promise<Response> {
 
 	const mathResponse = await routerModelQueryService.sendMessage("2e23*3");
 	console.log(mathResponse);
+	telegramService.sendMessage(chatId!, "Math response: " + mathResponse);
 
 	const weatherResponse = await routerModelQueryService.sendMessage(
 		"What is the weather in Wielowies, Slaskie, Poland",
 	);
 	console.log("Weather search response:", weatherResponse);
+	telegramService.sendMessage(chatId!, "Weather response: " + weatherResponse);
 
 	return new Response("OK");
 }
