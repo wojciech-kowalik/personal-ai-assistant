@@ -8,7 +8,7 @@
 ![GitHub package.json dependency version (subfolder of monorepo)](https://img.shields.io/github/package-json/dependency-version/wojciech-kowalik/personal-ai-assistant/grammy)
 ![GitHub package.json dependency version (subfolder of monorepo)](https://img.shields.io/github/package-json/dependency-version/wojciech-kowalik/personal-ai-assistant/@tavily/core)
 
-This project is a personal AI assistant built with Next.js 15 that leverages several powerful APIs:
+This project is a personal AI assistant built with Next.js 16 that leverages several powerful APIs:
 - **Groq API** for LLM chat capabilities
 - **Telegram Bot (Grammy)** for messaging interface
 - **Tavily API** for real-time information retrieval and search
