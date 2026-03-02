@@ -1,5 +1,5 @@
 export const DEFAULT_MODEL = "llama-3.1-8b-instant";
-export const IMAGE_MODEL = "meta-llama/llama-4-maverick-17b-128e-instruct";
+export const IMAGE_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
 export const AUDIO_TRANSCRIPTION_MODEL = "whisper-large-v3-turbo";
 
 // Production models that support tool use and function calling
