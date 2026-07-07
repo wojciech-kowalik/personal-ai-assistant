@@ -3,5 +3,5 @@ export const IMAGE_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
 export const AUDIO_TRANSCRIPTION_MODEL = "whisper-large-v3-turbo";
 
 // Production models that support tool use and function calling
-export const ROUTING_MODEL = "llama-3.3-70b-versatile";
-export const TOOL_USE_MODEL = "llama-3.3-70b-versatile";
+export const ROUTING_MODEL = "openai/gpt-oss-120b";
+export const TOOL_USE_MODEL = "openai/gpt-oss-120b";

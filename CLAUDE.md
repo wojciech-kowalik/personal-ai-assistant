@@ -55,9 +55,9 @@ The application follows a service-oriented architecture:
 
 The app uses different Groq models for different tasks:
 - `DEFAULT_MODEL` (llama-3.1-8b-instant) - General chat
-- `ROUTING_MODEL` (llama3-70b-8192) - Determines if tools are needed and performs initial tool calls
-- `TOOL_USE_MODEL` (llama-3.3-70b-versatile) - Final response generation after tool execution
-- `IMAGE_MODEL` (meta-llama/llama-4-maverick-17b-128e-instruct) - Image understanding
+- `ROUTING_MODEL` (openai/gpt-oss-120b) - Determines if tools are needed and performs initial tool calls
+- `TOOL_USE_MODEL` (openai/gpt-oss-120b) - Final response generation after tool execution
+- `IMAGE_MODEL` (meta-llama/llama-4-scout-17b-16e-instruct) - Image understanding
 - `AUDIO_TRANSCRIPTION_MODEL` (whisper-large-v3-turbo) - Voice transcription
 
 ### Tool System
